@@ -1,27 +1,40 @@
 FROM python:3.9-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=1.6.1 \
+    POETRY_HOME=/opt/poetry \
+    POETRY_VIRTUALENVS_CREATE=false
+
 # Set the working directory
 WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-dev
+
 # Install Poetry
-# We use a multi-stage approach or a single command to install Poetry
-RUN pip install poetry
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
-RUN poetry self add poetry-plugin-export
-
-# Copy the Poetry files to the container
+# Copy only dependency files first
 COPY pyproject.toml poetry.lock ./
 
-RUN poetry export --without-hashes --format=requirements.txt > requirements.txt
-
-RUN pip install -r /app/requirements.txt
-
-RUN pip install uwsgi
+# Install dependencies
+RUN poetry install --no-root --no-dev \
+    && poetry install uwsgi
 
 # Copy the application source code
-COPY ./app.py .
+COPY ./app.py ./wsgi.py ./uwsgi.ini ./
+
+# Create a non-root user and switch to it
+RUN useradd -m uploader && chown -R uploader:uploader /app
+USER uploader
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 5000
 
-CMD ["uwsgi", "--ini", "/app/wsgi.ini"]
+# Start uWSGI
+CMD ["uwsgi", "--ini", "uwsgi.ini"]
