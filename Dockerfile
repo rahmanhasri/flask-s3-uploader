@@ -3,8 +3,6 @@ FROM python:3.9-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.6.1 \
-    POETRY_HOME=/opt/poetry \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Set the working directory
@@ -17,14 +15,15 @@ RUN apt-get update \
         python3-dev
 
 # Install Poetry
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+RUN pip install --no-cache-dir poetry
 
 # Copy only dependency files first
 COPY pyproject.toml poetry.lock ./
 
 # Install dependencies
-RUN poetry install --no-root --no-dev \
-    && poetry install uwsgi
+RUN poetry install --no-root --no-dev
+
+RUN poetry install uwsgi
 
 # Copy the application source code
 COPY ./app.py ./wsgi.py ./uwsgi.ini ./
