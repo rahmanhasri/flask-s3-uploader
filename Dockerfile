@@ -24,7 +24,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root
 
 # Copy the application source code
-COPY ./app.py ./wsgi.py ./uwsgi.ini ./
+COPY ./app.py ./gunicorn_config.py ./
 
 # Create a non-root user and switch to it
 RUN useradd -m uploader && chown -R uploader:uploader /app
@@ -34,4 +34,4 @@ USER uploader
 EXPOSE 5000
 
 # Start uWSGI
-CMD ["uwsgi", "--ini", "uwsgi.ini"]
+CMD ["gunicorn", "-c", "gunicorn_config.py", "app:app"]
