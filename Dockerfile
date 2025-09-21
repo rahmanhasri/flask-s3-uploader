@@ -7,6 +7,8 @@ WORKDIR /app
 # We use a multi-stage approach or a single command to install Poetry
 RUN pip install poetry
 
+RUN poetry self add poetry-plugin-export
+
 # Copy the Poetry files to the container
 COPY pyproject.toml poetry.lock ./
 
