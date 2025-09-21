@@ -10,16 +10,16 @@ RUN pip install poetry
 # Copy the Poetry files to the container
 COPY pyproject.toml poetry.lock ./
 
-# Install project dependencies
-# The --no-root flag ensures that the package itself isn't installed
-# in editable mode inside the container.
-RUN poetry install --no-root --no-interaction --no-ansi
+RUN poetry export --without-hashes --format=requirements.txt > requirements.txt
+
+RUN pip install -r /app/requirements.txt
+
+RUN pip install uwsgi
 
 # Copy the application source code
-COPY . .
+COPY ./app.py .
 
 # Expose the port the app runs on
-EXPOSE 5000
+EXPOSE 3000
 
-# Run the application with Poetry
-CMD ["poetry", "run", "python", "app.py"]
+CMD ["uwsgi", "--ini", "/app/wsgi.ini"]
