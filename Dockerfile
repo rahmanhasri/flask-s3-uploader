@@ -21,9 +21,7 @@ RUN pip install --no-cache-dir poetry
 COPY pyproject.toml poetry.lock ./
 
 # Install dependencies
-RUN poetry install
-
-RUN poetry install uwsgi
+RUN poetry install --no-root
 
 # Copy the application source code
 COPY ./app.py ./wsgi.py ./uwsgi.ini ./
