@@ -31,6 +31,7 @@ def upload_file():
         return jsonify({"error": "No file part in the request"}), 400
 
     file = request.files["file"]
+    body_filename = request.form.get('filename', '')
 
     if file.filename == "":
         return jsonify({"error": "No file selected for uploading"}), 400
@@ -38,7 +39,8 @@ def upload_file():
     if file:
         filename = secure_filename(file.filename)
         s3_object_name = f"{int(time.time() * 1000)}-{filename}"
-        # s3_object_name = f"1758455859969-{filename}"
+        if body_filename:
+            s3_object_name = body_filename
 
         # Determine the MIME type of the file
         mime_type, _ = mimetypes.guess_type(filename)
