@@ -13,20 +13,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://tsuzumijapan.com",
-            "https://dev.tsuzumijapan.com",
-            "http://tsuzumijapan.com",
-            "http://dev.tsuzumijapan.com"
-            "https://admin.tsuzumijapan.com",
-            "https://dev-admin.tsuzumijapan.com",
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
+CORS(app, resources={r"/upload/*": {"origins": "*"}})
 
 # Load AWS credentials from environment variables
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -142,7 +129,7 @@ def update_to_s3(file, custom_filename=None):
     except Exception as e:
         return {"status": "error", "error": str(e), "filename": filename}, 500
 
-@app.route("/reupload/bulk", methods=["POST"])
+@app.route("/upload/bulk", methods=["POST"])
 def bulk_upload():
     """Endpoint to upload multiple files to S3 with public read access."""
     if "files" not in request.files:
