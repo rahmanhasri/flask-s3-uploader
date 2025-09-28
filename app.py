@@ -13,6 +13,21 @@ load_dotenv()
 
 app = Flask(__name__)
 
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://tsuzumijapan.com",
+            "https://dev.tsuzumijapan.com",
+            "http://tsuzumijapan.com",
+            "http://dev.tsuzumijapan.com"
+            "https://admin.tsuzumijapan.com",
+            "https://dev-admin.tsuzumijapan.com",
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
 # Load AWS credentials from environment variables
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -228,19 +243,6 @@ def bulk_upload():
 #     }
 
 #     return jsonify(response), status_code
-
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://tsuzumijapan.com",
-            "https://dev.tsuzumijapan.com",
-            "http://tsuzumijapan.com",
-            "http://dev.tsuzumijapan.com"
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
 
 if __name__ == "__main__":
     app.run(debug=True)
