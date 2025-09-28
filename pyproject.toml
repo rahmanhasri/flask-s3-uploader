@@ -1,5 +1,5 @@
 [project]
-name = "s3-uploader"
+name = "app"
 version = "0.1.0"
 description = ""
 authors = [
@@ -22,7 +22,7 @@ authors = ["rahmanhasri <rahman.hasri@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.9.22"
+python = "3.9.23"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
