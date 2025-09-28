@@ -5,7 +5,8 @@ import time
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import requests
+# import requests
+from flask_cors import CORS
 from io import BytesIO
 
 load_dotenv()
@@ -167,66 +168,79 @@ def bulk_upload():
 
     return jsonify(response), status_code
 
-@app.route("/reupload/from-urls", methods=["POST"])
-def bulk_upload_from_urls():
-    """Endpoint to upload multiple files from URLs to S3."""
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
+# @app.route("/reupload/from-urls", methods=["POST"])
+# def bulk_upload_from_urls():
+#     """Endpoint to upload multiple files from URLs to S3."""
+#     if not request.is_json:
+#         return jsonify({"error": "Request must be JSON"}), 400
 
-    data = request.get_json()
-    if not data or "urls" not in data:
-        return jsonify({"error": "No URLs provided in request"}), 400
+#     data = request.get_json()
+#     if not data or "urls" not in data:
+#         return jsonify({"error": "No URLs provided in request"}), 400
 
-    urls = data["urls"]
-    custom_filenames = data.get("filenames", [])  # Optional custom filenames
-    results = []
-    total_success = 0
-    total_failed = 0
+#     urls = data["urls"]
+#     custom_filenames = data.get("filenames", [])  # Optional custom filenames
+#     results = []
+#     total_success = 0
+#     total_failed = 0
 
-    for idx, url in enumerate(urls):
-        try:
-            # Download the image from URL
-            response = requests.get(url)
-            response.raise_for_status()
-            # Create file-like object from downloaded content
-            file_obj = BytesIO(response.content)
-            # Extract filename from URL
-            url_filename = url.split('/')[-1]
-            file_obj.filename = url_filename  # Add filename attribute for compatibility
-            # Get custom filename if provided
-            custom_filename = custom_filenames[idx] if idx < len(custom_filenames) else None
-            # Upload to S3
-            result, status_code = update_to_s3(file_obj, custom_filename)
-            results.append(result)
+#     for idx, url in enumerate(urls):
+#         try:
+#             # Download the image from URL
+#             response = requests.get(url)
+#             response.raise_for_status()
+#             # Create file-like object from downloaded content
+#             file_obj = BytesIO(response.content)
+#             # Extract filename from URL
+#             url_filename = url.split('/')[-1]
+#             file_obj.filename = url_filename  # Add filename attribute for compatibility
+#             # Get custom filename if provided
+#             custom_filename = custom_filenames[idx] if idx < len(custom_filenames) else None
+#             # Upload to S3
+#             result, status_code = update_to_s3(file_obj, custom_filename)
+#             results.append(result)
 
-            if status_code == 201:
-                total_success += 1
-            else:
-                total_failed += 1
-        except Exception as e:
-            results.append({
-                "status": "error",
-                "error": str(e),
-                "url": url
-            })
-            total_failed += 1
+#             if status_code == 201:
+#                 total_success += 1
+#             else:
+#                 total_failed += 1
+#         except Exception as e:
+#             results.append({
+#                 "status": "error",
+#                 "error": str(e),
+#                 "url": url
+#             })
+#             total_failed += 1
 
-    # Determine response status code
-    if total_failed == 0 and total_success > 0:
-        status_code = 201
-    elif total_success == 0:
-        status_code = 500
-    else:
-        status_code = 207
+#     # Determine response status code
+#     if total_failed == 0 and total_success > 0:
+#         status_code = 201
+#     elif total_success == 0:
+#         status_code = 500
+#     else:
+#         status_code = 207
 
-    response = {
-        "total_urls": total_success + total_failed,
-        "successful_uploads": total_success,
-        "failed_uploads": total_failed,
-        "results": results
+#     response = {
+#         "total_urls": total_success + total_failed,
+#         "successful_uploads": total_success,
+#         "failed_uploads": total_failed,
+#         "results": results
+#     }
+
+#     return jsonify(response), status_code
+
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://tsuzumijapan.com",
+            "https://dev.tsuzumijapan.com",
+            "http://tsuzumijapan.com",
+            "http://dev.tsuzumijapan.com"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
-
-    return jsonify(response), status_code
+})
 
 if __name__ == "__main__":
     app.run(debug=True)
