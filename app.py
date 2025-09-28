@@ -5,6 +5,8 @@ import time
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import requests
+from io import BytesIO
 
 load_dotenv()
 
@@ -99,7 +101,32 @@ def upload_to_s3(file, custom_filename=None):
     except Exception as e:
         return {"status": "error", "error": str(e), "filename": filename}, 500
 
-@app.route("/upload/bulk", methods=["POST"])
+def update_to_s3(file, custom_filename=None):
+    """Helper function to update (overwrite) a single file in S3."""
+    if file.filename == "":
+        return {"error": "Empty filename"}, 400
+
+    filename = secure_filename(file.filename)
+    s3_object_name = custom_filename if custom_filename else filename
+
+    # Determine the MIME type of the file
+    mime_type, _ = mimetypes.guess_type(filename)
+    if mime_type is None:
+        mime_type = "application/octet-stream"  # Default MIME type if not detected
+
+    try:
+        print("MIME TYPE:", mime_type)
+        s3.put_object(Bucket=S3_BUCKET_NAME, Key=s3_object_name, Body=file, ContentType=mime_type, ACL='public-read')
+        return {
+            "status": "success",
+            "message": "File updated successfully",
+            "filename": filename,
+            "s3_location": f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_object_name}"
+        }, 201
+    except Exception as e:
+        return {"status": "error", "error": str(e), "filename": filename}, 500
+
+@app.route("/reupload/bulk", methods=["POST"])
 def bulk_upload():
     """Endpoint to upload multiple files to S3 with public read access."""
     if "files" not in request.files:
@@ -116,7 +143,7 @@ def bulk_upload():
 
     for idx, file in enumerate(files):
         custom_filename = custom_filenames[idx] if idx < len(custom_filenames) else None
-        result, status_code = upload_to_s3(file, custom_filename)
+        result, status_code = update_to_s3(file, custom_filename)
         results.append(result)
         if status_code == 201:
             total_success += 1
@@ -133,6 +160,67 @@ def bulk_upload():
 
     response = {
         "total_files": total_success + total_failed,
+        "successful_uploads": total_success,
+        "failed_uploads": total_failed,
+        "results": results
+    }
+
+    return jsonify(response), status_code
+
+@app.route("/reupload/from-urls", methods=["POST"])
+def bulk_upload_from_urls():
+    """Endpoint to upload multiple files from URLs to S3."""
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    if not data or "urls" not in data:
+        return jsonify({"error": "No URLs provided in request"}), 400
+
+    urls = data["urls"]
+    custom_filenames = data.get("filenames", [])  # Optional custom filenames
+    results = []
+    total_success = 0
+    total_failed = 0
+
+    for idx, url in enumerate(urls):
+        try:
+            # Download the image from URL
+            response = requests.get(url)
+            response.raise_for_status()
+            # Create file-like object from downloaded content
+            file_obj = BytesIO(response.content)
+            # Extract filename from URL
+            url_filename = url.split('/')[-1]
+            file_obj.filename = url_filename  # Add filename attribute for compatibility
+            # Get custom filename if provided
+            custom_filename = custom_filenames[idx] if idx < len(custom_filenames) else None
+            # Upload to S3
+            result, status_code = update_to_s3(file_obj, custom_filename)
+            results.append(result)
+
+            if status_code == 201:
+                total_success += 1
+            else:
+                total_failed += 1
+        except Exception as e:
+            results.append({
+                "status": "error",
+                "error": str(e),
+                "url": url
+            })
+            total_failed += 1
+
+    # Determine response status code
+    if total_failed == 0 and total_success > 0:
+        status_code = 201
+    elif total_success == 0:
+        status_code = 500
+    else:
+        status_code = 207
+
+    response = {
+        "total_urls": total_success + total_failed,
         "successful_uploads": total_success,
         "failed_uploads": total_failed,
         "results": results
