@@ -22,7 +22,7 @@ authors = ["rahmanhasri <rahman.hasri@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.9.23"
+python = "^3.9"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
