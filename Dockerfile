@@ -35,3 +35,5 @@ EXPOSE 5000
 
 # Start uWSGI
 CMD ["gunicorn", "-c", "gunicorn_config.py", "app:app"]
+
+# END
